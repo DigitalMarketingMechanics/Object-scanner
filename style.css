@@ -4,6 +4,7 @@ body {
   margin: 0;
   padding: 0;
 }
+
 main {
   max-width: 500px;
   margin: 32px auto 0 auto;
@@ -11,60 +12,52 @@ main {
   border-radius: 10px;
   padding: 28px 20px;
   box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+  text-align: center;
 }
+
 video {
   display: block;
   width: 100%;
   max-width: 420px;
   border-radius: 8px;
   background: #111;
-  margin-bottom: 10px;
+  margin: 20px auto 10px auto;
+  max-height: 315px;
+  object-fit: cover;
 }
+
+.controls {
+  margin-bottom: 20px;
+}
+
 button {
-  margin: 10px 6px 0 0;
-  padding: 10px 22px;
+  margin: 8px 6px 0 6px;
+  padding: 10px 18px;
   background: #186ae3;
   color: #fff;
   border: none;
   border-radius: 5px;
   font-size: 1rem;
   cursor: pointer;
+  min-width: 110px;
+  transition: background-color 0.3s ease;
 }
+
+button:hover:not([disabled]) {
+  background: #145ab8;
+}
+
 button[disabled] {
   background: #b3b3b3;
   cursor: not-allowed;
 }
+
 #result {
   margin-top: 26px;
+  text-align: left;
 }
+
 .price-list {
   list-style: none;
   padding: 0;
-  margin: 0;
-}
-.price-list li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #f5f7fa;
-  margin-bottom: 9px;
-  padding: 10px 12px;
-  border-radius: 4px;
-}
-.price-list a {
-  text-decoration: none;
-  color: #01996d;
-  font-weight: bold;
-}
-footer {
-  text-align: center;
-  padding: 22px 0 12px 0;
-  background: #f8fafb;
-  font-size: 1rem;
-  margin-top: 34px;
-  border-top: 1px solid #e5e7eb;
-}
-footer a {
-  color: #2b59e5;
-  text-decoration: underline;
-}
+  margin:
