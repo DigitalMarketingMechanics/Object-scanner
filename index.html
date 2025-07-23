@@ -1,22 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Real-World Object Scanner</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>AI Object Scanner & Price Comparison</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <main>
     <h1>Scan Any Object – Price Comparison</h1>
-    <video id="camera" autoplay playsinline></video>
-    <button id="startCamera">Start Camera</button>
-    <button id="scanObject" disabled>Scan Object</button>
+    <video id="camera" autoplay playsinline muted></video>
+    <div class="controls">
+      <button id="startCamera">Start Camera</button>
+      <button id="toggleFlash" disabled>Toggle Flashlight</button>
+      <button id="scanObject" disabled>Scan Object</button>
+    </div>
     <section id="result"></section>
   </main>
   <footer>
     Developed by
-    <a href="https://sites.google.com/view/digitalmarketingmechanicseluru" target="_blank" rel="noopener">
+    <a href="https://sites.google.com/view/digitalmarketingmechanicseluru" target="_blank" rel="noopener noreferrer">
       Digital Marketing Mechanics
     </a>
   </footer>
