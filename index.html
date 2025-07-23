@@ -1,29 +1,674 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>AI Object Scanner & Price Comparison</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Object Scanner - Price Comparison</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/5.0.0/tf.min.js"></script>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --accent: #4895ef;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #4cc9f0;
+            --warning: #f72585;
+            --gray: #6c757d;
+            --light-gray: #e9ecef;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--dark);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 0;
+            margin-bottom: 30px;
+        }
+        
+        header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        header p {
+            font-size: 1.2rem;
+            color: var(--gray);
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .app-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.1);
+        }
+        
+        .scanner-section {
+            padding: 30px;
+            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            color: white;
+            position: relative;
+        }
+        
+        .results-section {
+            padding: 30px;
+            background: white;
+        }
+        
+        .scanner-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .scanner-header i {
+            font-size: 2rem;
+            background: rgba(255, 255, 255, 0.2);
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        
+        .scanner-header h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+        
+        .camera-container {
+            width: 100%;
+            height: 300px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+        
+        #camera-placeholder {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        #camera-placeholder i {
+            font-size: 4rem;
+            margin-bottom: 15px;
+            opacity: 0.7;
+        }
+        
+        .camera-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            border: 2px dashed rgba(255, 255, 255, 0.5);
+            border-radius: 15px;
+        }
+        
+        .scanner-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .btn {
+            padding: 14px 25px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: white;
+            color: var(--primary);
+            flex: 1;
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        .upload-container {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .upload-container p {
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        
+        .btn-upload {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 25px;
+        }
+        
+        #file-input {
+            display: none;
+        }
+        
+        .detection-result {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            display: none;
+        }
+        
+        .detection-result h3 {
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .detection-result h3 i {
+            color: var(--success);
+        }
+        
+        .object-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #ff9a9e, #fad0c4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .confidence {
+            display: inline-block;
+            background: rgba(76, 201, 240, 0.2);
+            color: var(--success);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+        
+        .results-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--light-gray);
+        }
+        
+        .results-header i {
+            font-size: 2rem;
+            color: var(--primary);
+            background: rgba(67, 97, 238, 0.1);
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        
+        .results-header h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .sort-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background: var(--light-gray);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        
+        .sort-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+        }
+        
+        .sort-select {
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+            background: white;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        
+        .results-container {
+            min-height: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .product-card {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            border-radius: 15px;
+            background: white;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            border: 1px solid var(--light-gray);
+        }
+        
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-color: var(--accent);
+        }
+        
+        .product-image {
+            width: 120px;
+            height: 120px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: var(--light-gray);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .product-image i {
+            font-size: 2.5rem;
+            color: var(--gray);
+        }
+        
+        .product-info {
+            flex: 1;
+        }
+        
+        .product-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--dark);
+        }
+        
+        .product-store {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--gray);
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+        
+        .store-logo {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 0.7rem;
+        }
+        
+        .amazon { background: #ff9900; }
+        .ebay { background: #0064d2; }
+        .walmart { background: #007dc6; }
+        .bestbuy { background: #003b64; }
+        .target { background: #cc0000; }
+        
+        .product-price {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+        
+        .product-shipping {
+            background: rgba(76, 201, 240, 0.1);
+            color: var(--success);
+            padding: 5px 10px;
+            border-radius: 20px;
+            display: inline-block;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 15px;
+        }
+        
+        .product-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-buy {
+            padding: 10px 20px;
+            background: var(--primary);
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.3s;
+        }
+        
+        .btn-buy:hover {
+            background: var(--secondary);
+        }
+        
+        .placeholder {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--gray);
+        }
+        
+        .placeholder i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+        
+        .placeholder h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: var(--dark);
+        }
+        
+        .placeholder p {
+            max-width: 400px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 50px;
+            display: none;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(67, 97, 238, 0.2);
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .scan-count {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 900px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .scanner-section {
+                border-radius: 20px 20px 0 0;
+            }
+            
+            .results-section {
+                border-radius: 0 0 20px 20px;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .scanner-controls {
+                flex-direction: column;
+            }
+            
+            .product-card {
+                flex-direction: column;
+            }
+            
+            .product-image {
+                width: 100%;
+                height: 200px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <main>
-    <h1>Scan Any Object – Price Comparison</h1>
-    <video id="camera" autoplay playsinline muted></video>
-    <div class="controls">
-      <button id="startCamera">Start Camera</button>
-      <button id="toggleFlash" disabled>Toggle Flashlight</button>
-      <button id="scanObject" disabled>Scan Object</button>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-camera"></i> Object Scanner</h1>
+            <p>Scan any object, identify it instantly, and compare prices from top online stores with direct purchase links</p>
+        </header>
+        
+        <div class="app-container">
+            <!-- Scanner Section -->
+            <div class="scanner-section">
+                <div class="scan-count">
+                    <i class="fas fa-camera"></i> <span id="scan-count">1,245</span> Scans Today
+                </div>
+                
+                <div class="scanner-header">
+                    <i class="fas fa-camera-retro"></i>
+                    <h2>Scan Your Object</h2>
+                </div>
+                
+                <div class="camera-container">
+                    <video id="video" autoplay playsinline></video>
+                    <div id="camera-placeholder">
+                        <i class="fas fa-camera"></i>
+                        <p>Camera feed will appear here</p>
+                    </div>
+                    <div class="camera-overlay"></div>
+                </div>
+                
+                <div class="scanner-controls">
+                    <button id="start-camera" class="btn btn-primary">
+                        <i class="fas fa-play"></i> Start Camera
+                    </button>
+                    <button id="capture" class="btn btn-secondary" disabled>
+                        <i class="fas fa-camera"></i> Capture & Scan
+                    </button>
+                </div>
+                
+                <div class="upload-container">
+                    <p>Or upload an existing image</p>
+                    <button class="btn btn-upload" id="upload-btn">
+                        <i class="fas fa-upload"></i> Upload Image
+                    </button>
+                    <input type="file" id="file-input" accept="image/*">
+                </div>
+                
+                <div class="detection-result" id="detection-result">
+                    <h3><i class="fas fa-check-circle"></i> Object Identified</h3>
+                    <div class="object-name" id="object-name">Wireless Headphones</div>
+                    <div class="confidence">Confidence: 92%</div>
+                    <p>We've found the best prices for this product from top retailers.</p>
+                </div>
+            </div>
+            
+            <!-- Results Section -->
+            <div class="results-section">
+                <div class="results-header">
+                    <i class="fas fa-shopping-bag"></i>
+                    <h2>Price Comparison</h2>
+                </div>
+                
+                <div class="sort-controls">
+                    <div class="sort-option">
+                        <span>Sort by:</span>
+                        <select class="sort-select" id="sort-select">
+                            <option value="low-to-high">Price: Low to High</option>
+                            <option value="high-to-low">Price: High to Low</option>
+                            <option value="rating">Top Rated</option>
+                            <option value="shipping">Fastest Shipping</option>
+                        </select>
+                    </div>
+                    <div class="results-count">
+                        <span id="results-count">5</span> Results
+                    </div>
+                </div>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Scanning object and searching for prices...</p>
+                </div>
+                
+                <div class="results-container" id="results-container">
+                    <!-- Results will be populated here -->
+                    <div class="placeholder" id="results-placeholder">
+                        <i class="fas fa-search"></i>
+                        <h3>Scan an Object to Begin</h3>
+                        <p>Use your camera to scan any object or upload an existing photo to see price comparisons from top online stores.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <section id="result"></section>
-  </main>
-  <footer>
-    Developed by
-    <a href="https://sites.google.com/view/digitalmarketingmechanicseluru"
-       target="_blank" rel="noopener noreferrer">
-      Digital Marketing Mechanics
-    </a>
-  </footer>
-  <script src="script.js"></script>
-</body>
-</html>
+
+    <script>
+        // DOM Elements
+        const video = document.getElementById('video');
+        const startCameraBtn = document.getElementById('start-camera');
+        const captureBtn = document.getElementById('capture');
+        const fileInput = document.getElementById('file-input');
+        const uploadBtn = document.getElementById('upload-btn');
+        const detectionResult = document.getElementById('detection-result');
+        const objectName = document.getElementById('object-name');
+        const resultsContainer = document.getElementById('results-container');
+        const resultsPlaceholder = document.getElementById('results-placeholder');
+        const loading = document.getElementById('loading');
+        const sortSelect = document.getElementById('sort-select');
+        const resultsCount = document.getElementById('results-count');
+        const scanCount = document.getElementById('scan-count');
+
+        // Mock object database
+        const objectDatabase = {
+            headphones: {
+                name: "Wireless Headphones",
+                confidence: 92
+            },
+            watch: {
+                name: "Smart Watch",
+                confidence: 87
+            },
+            shoes: {
+                name: "Running Shoes",
+                confidence: 95
+            },
+            book: {
+                name: "Hardcover Book",
+                confidence: 82
+            },
+            plant: {
+                name: "Indoor Plant",
+                confidence: 78
+            },
+            mug: {
+                name: "Ceramic Coffee Mug",
+                confidence: 90
+            }
+        };
+
+        // Mock product data
+        const mockProducts = [
+            {
+                id: 1,
+                name: "Premium Wireless Headphones",
+                store: "amazon",
+                price: 89.99,
+                rating: 4.8,
+                shipping: "Free delivery",
+                image: "headphones"
+            },
+            {
+                id: 2,
+                name: "Noise Cancelling Headphones",
+                store: "bestbuy",
+                price: 129.99,
+          
