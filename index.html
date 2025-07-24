@@ -654,4 +654,358 @@
         // Stop camera
         function stopCamera() {
             if (stream) {
-                const tracks = stream.getTracks();
+                const tracks = stream.getTracks();tracks.forEach(track => track.stop());
+                video.style.display = 'none';
+                document.getElementById('camera-placeholder').style.display = 'block';
+                captureBtn.disabled = true;
+                startCameraBtn.innerHTML = '<i class="fas fa-play"></i> Start Camera';
+            }
+        }
+        
+        // Capture image from camera
+        function captureImage() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Process the captured image
+            processImage(canvas);
+        }
+        
+        // Process image for object detection
+        async function processImage(imageElement) {
+            if (!model) {
+                alert('Model not loaded yet. Please try again in a moment.');
+                return;
+            }
+            
+            // Show loading state
+            loading.style.display = 'flex';
+            resultsPlaceholder.style.display = 'none';
+            detectionResult.style.display = 'block';
+            objectName.textContent = 'Scanning...';
+            confidenceElement.textContent = '0%';
+            
+            try {
+                // Classify the image
+                const predictions = await model.classify(imageElement);
+                
+                if (predictions.length > 0) {
+                    const topPrediction = predictions[0];
+                    
+                    // Update UI with detection result
+                    objectName.textContent = topPrediction.className.split(',')[0];
+                    confidenceElement.textContent = `${Math.round(topPrediction.probability * 100)}%`;
+                    
+                    // Show product results
+                    displayProducts(topPrediction.className.split(',')[0]);
+                    
+                    // Update scan count
+                    const currentCount = parseInt(scanCount.textContent.replace(/,/g, ''));
+                    scanCount.textContent = (currentCount + 1).toLocaleString();
+                } else {
+                    objectName.textContent = 'Object not recognized';
+                    confidenceElement.textContent = '0%';
+                    showNoResults();
+                }
+            } catch (error) {
+                console.error('Error processing image:', error);
+                objectName.textContent = 'Error in detection';
+                confidenceElement.textContent = '0%';
+                showNoResults();
+            } finally {
+                // Hide loading
+                loading.style.display = 'none';
+            }
+        }
+        
+        // Show no results message
+        function showNoResults() {
+            resultsContainer.innerHTML = `
+                <div class="placeholder">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>No Products Found</h3>
+                    <p>We couldn't find any products for this object. Try scanning a different item.</p>
+                </div>
+            `;
+            resultsCount.textContent = '0';
+        }
+        
+        // Display products in results
+        function displayProducts(objectName) {
+            // Generate mock products based on the object name
+            const products = generateMockProducts(objectName);
+            
+            if (products.length === 0) {
+                showNoResults();
+                return;
+            }
+            
+            resultsContainer.innerHTML = '';
+            resultsCount.textContent = products.length;
+            
+            products.forEach(product => {
+                const store = getStoreInfo(product.store);
+                
+                const productElement = document.createElement('div');
+                productElement.className = 'product-card';
+                productElement.innerHTML = `
+                    <div class="product-image">
+                        ${product.image ? 
+                            `<img src="${product.image}" alt="${product.name}">` : 
+                            `<i class="fas fa-${getProductIcon(product.category)}"></i>`
+                        }
+                    </div>
+                    <div class="product-info">
+                        <div class="product-title">${product.name}</div>
+                        <div class="product-store">
+                            <div class="store-logo ${product.store}">${store.name.charAt(0)}</div>
+                            <span>${store.name}</span>
+                        </div>
+                        <div class="product-price">$${product.price.toFixed(2)}</div>
+                        <div class="product-shipping">${product.shipping}</div>
+                        <div class="product-actions">
+                            <a href="${product.link}" class="btn-buy" target="_blank">
+                                <i class="fas fa-shopping-cart"></i> Buy Now
+                            </a>
+                            <a href="#" class="btn-buy" style="background: #6c757d;">
+                                <i class="fas fa-heart"></i> Save
+                            </a>
+                        </div>
+                    </div>
+                `;
+                
+                resultsContainer.appendChild(productElement);
+            });
+        }
+        
+        // Generate mock products based on object type
+        function generateMockProducts(objectName) {
+            const category = getProductCategory(objectName);
+            const products = [];
+            
+            const stores = ['amazon', 'ebay', 'walmart', 'bestbuy', 'target'];
+            const shippingOptions = [
+                "Free shipping",
+                "Free 2-day delivery",
+                "Same-day delivery available",
+                "Free delivery by tomorrow",
+                "Express shipping available"
+            ];
+            
+            const names = {
+                electronics: [
+                    "Premium Wireless Headphones",
+                    "Noise Cancelling Headphones",
+                    "Bluetooth Headphones Pro",
+                    "Studio Quality Headphones",
+                    "Over-Ear Headphones"
+                ],
+                clothing: [
+                    "Men's Running Shoes",
+                    "Women's Athletic Shoes",
+                    "Casual Sneakers",
+                    "Trail Running Shoes",
+                    "Lightweight Walking Shoes"
+                ],
+                kitchen: [
+                    "Stainless Steel Coffee Mug",
+                    "Double Wall Insulated Mug",
+                    "Ceramic Coffee Cup",
+                    "Travel Coffee Tumbler",
+                    "Designer Coffee Mug Set"
+                ],
+                book: [
+                    "Bestselling Hardcover Book",
+                    "Latest Fiction Novel",
+                    "Award-Winning Non-Fiction",
+                    "Popular Science Book",
+                    "Critically Acclaimed Biography"
+                ],
+                plant: [
+                    "Indoor Potted Plant",
+                    "Low Maintenance Houseplant",
+                    "Decorative Succulent",
+                    "Air Purifying Plant",
+                    "Flowering Indoor Plant"
+                ],
+                watch: [
+                    "Smart Watch Pro",
+                    "Fitness Tracker Watch",
+                    "Luxury Analog Watch",
+                    "Digital Sports Watch",
+                    "Waterproof Smartwatch"
+                ],
+                default: [
+                    `${objectName} - Premium Edition`,
+                    `${objectName} - Professional Grade`,
+                    `Deluxe ${objectName} Set`,
+                    `${objectName} with Accessories`,
+                    `Eco-Friendly ${objectName}`
+                ]
+            };
+            
+            const basePrice = Math.random() * 100 + 20;
+            
+            for (let i = 0; i < 5; i++) {
+                const store = stores[i];
+                const nameSet = names[category] || names.default;
+                const name = nameSet[Math.floor(Math.random() * nameSet.length)];
+                
+                products.push({
+                    id: i + 1,
+                    name: name,
+                    store: store,
+                    price: basePrice * (0.8 + Math.random() * 0.4),
+                    rating: (4 + Math.random()).toFixed(1),
+                    shipping: shippingOptions[Math.floor(Math.random() * shippingOptions.length)],
+                    link: `https://${store}.com/product/${name.replace(/\s+/g, '-').toLowerCase()}`,
+                    category: category,
+                    image: getProductImage(category)
+                });
+            }
+            
+            return products;
+        }
+        
+        // Get product category based on object name
+        function getProductCategory(objectName) {
+            const lowerName = objectName.toLowerCase();
+            
+            if (lowerName.includes('headphone') || lowerName.includes('earphone')) {
+                return 'electronics';
+            } else if (lowerName.includes('shoe') || lowerName.includes('sneaker')) {
+                return 'clothing';
+            } else if (lowerName.includes('mug') || lowerName.includes('cup')) {
+                return 'kitchen';
+            } else if (lowerName.includes('book')) {
+                return 'book';
+            } else if (lowerName.includes('plant') || lowerName.includes('succulent')) {
+                return 'plant';
+            } else if (lowerName.includes('watch') || lowerName.includes('timepiece')) {
+                return 'watch';
+            }
+            
+            return 'default';
+        }
+        
+        // Get store information
+        function getStoreInfo(storeId) {
+            const stores = {
+                amazon: { name: "Amazon", color: "#ff9900" },
+                ebay: { name: "eBay", color: "#0064d2" },
+                walmart: { name: "Walmart", color: "#007dc6" },
+                bestbuy: { name: "Best Buy", color: "#003b64" },
+                target: { name: "Target", color: "#cc0000" }
+            };
+            
+            return stores[storeId] || { name: "Online Store", color: "#6c757d" };
+        }
+        
+        // Get product icon
+        function getProductIcon(category) {
+            const icons = {
+                electronics: 'headphones',
+                clothing: 'shoe-prints',
+                kitchen: 'mug-hot',
+                book: 'book',
+                plant: 'leaf',
+                watch: 'clock',
+                default: 'shopping-bag'
+            };
+            
+            return icons[category] || 'shopping-bag';
+        }
+        
+        // Get product image URL
+        function getProductImage(category) {
+            const images = {
+                electronics: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8aGVhZHBob25lc3xlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60',
+                clothing: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8c2hvZXN8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60',
+                kitchen: 'https://images.unsplash.com/photo-1596560548464-f010549b84d7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y29mZmVlJTIwbXVnfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60',
+                book: 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Ym9va3N8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60',
+                plant: 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cGxhbnRzfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60',
+                watch: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8d2F0Y2h8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60'
+            };
+            
+            return images[category];
+        }
+        
+        // Sort products
+        function sortProducts(sortType) {
+            const productCards = Array.from(resultsContainer.querySelectorAll('.product-card'));
+            
+            productCards.sort((a, b) => {
+                const aPrice = parseFloat(a.querySelector('.product-price').textContent.replace('$', ''));
+                const bPrice = parseFloat(b.querySelector('.product-price').textContent.replace('$', ''));
+                
+                switch(sortType) {
+                    case 'low-to-high':
+                        return aPrice - bPrice;
+                    case 'high-to-low':
+                        return bPrice - aPrice;
+                    case 'rating':
+                        // For simplicity, we'll randomize for rating
+                        return Math.random() - 0.5;
+                    case 'shipping':
+                        // For simplicity, we'll randomize for shipping
+                        return Math.random() - 0.5;
+                    default:
+                        return 0;
+                }
+            });
+            
+            // Clear and re-add sorted products
+            resultsContainer.innerHTML = '';
+            productCards.forEach(card => resultsContainer.appendChild(card));
+        }
+        
+        // Event Listeners
+        startCameraBtn.addEventListener('click', () => {
+            if (stream) {
+                stopCamera();
+            } else {
+                initCamera();
+            }
+        });
+        
+        captureBtn.addEventListener('click', captureImage);
+        
+        uploadBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        processImage(canvas);
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+        
+        sortSelect.addEventListener('change', (e) => {
+            sortProducts(e.target.value);
+        });
+
+        // Initialize with a random scan count
+        scanCount.textContent = Math.floor(Math.random() * 5000 + 1000).toLocaleString();
+        
+        // Initialize the application
+        window.addEventListener('load', async () => {
+            await initModel();
+        });
+    </script>
+</body>
+</html>
+    
