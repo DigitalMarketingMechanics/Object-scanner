@@ -4,21 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Object Scanner - Price Comparison</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@1.0.0"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/5.0.0/tf.min.js"></script>
     <style>
-        :root {
-            --primary: #4361ee;
-            --secondary: #3f37c9;
-            --accent: #4895ef;
-            --light: #f8f9fa;
-            --dark: #212529;
-            --success: #4cc9f0;
-            --warning: #f72585;
-            --gray: #6c757d;
-            --light-gray: #e9ecef;
-        }
-        
         * {
             margin: 0;
             padding: 0;
@@ -30,7 +19,7 @@
             background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
             min-height: 100vh;
             padding: 20px;
-            color: var(--dark);
+            color: #333;
         }
         
         .container {
@@ -45,9 +34,9 @@
         }
         
         header h1 {
-            font-size: 2.8rem;
+            font-size: 3rem;
             margin-bottom: 10px;
-            background: linear-gradient(to right, var(--primary), var(--accent));
+            background: linear-gradient(to right, #4361ee, #3a0ca3);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
@@ -55,7 +44,7 @@
         
         header p {
             font-size: 1.2rem;
-            color: var(--gray);
+            color: #6c757d;
             max-width: 700px;
             margin: 0 auto;
             line-height: 1.6;
@@ -108,7 +97,7 @@
         
         .camera-container {
             width: 100%;
-            height: 300px;
+            height: 350px;
             background: rgba(0, 0, 0, 0.2);
             border-radius: 15px;
             display: flex;
@@ -170,7 +159,7 @@
         
         .btn-primary {
             background: white;
-            color: var(--primary);
+            color: #4361ee;
             flex: 1;
         }
         
@@ -229,7 +218,7 @@
         }
         
         .detection-result h3 i {
-            color: var(--success);
+            color: #4cc9f0;
         }
         
         .object-name {
@@ -245,7 +234,7 @@
         .confidence {
             display: inline-block;
             background: rgba(76, 201, 240, 0.2);
-            color: var(--success);
+            color: #4cc9f0;
             padding: 5px 15px;
             border-radius: 20px;
             font-size: 0.9rem;
@@ -258,12 +247,12 @@
             gap: 15px;
             margin-bottom: 25px;
             padding-bottom: 15px;
-            border-bottom: 2px solid var(--light-gray);
+            border-bottom: 2px solid #e9ecef;
         }
         
         .results-header i {
             font-size: 2rem;
-            color: var(--primary);
+            color: #4361ee;
             background: rgba(67, 97, 238, 0.1);
             width: 60px;
             height: 60px;
@@ -276,7 +265,7 @@
         .results-header h2 {
             font-size: 1.8rem;
             font-weight: 600;
-            color: var(--dark);
+            color: #212529;
         }
         
         .sort-controls {
@@ -284,7 +273,7 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
-            background: var(--light-gray);
+            background: #e9ecef;
             padding: 15px;
             border-radius: 10px;
         }
@@ -320,13 +309,13 @@
             background: white;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
             transition: all 0.3s ease;
-            border: 1px solid var(--light-gray);
+            border: 1px solid #e9ecef;
         }
         
         .product-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            border-color: var(--accent);
+            border-color: #4895ef;
         }
         
         .product-image {
@@ -334,7 +323,7 @@
             height: 120px;
             border-radius: 10px;
             overflow: hidden;
-            background: var(--light-gray);
+            background: #f8f9fa;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -348,7 +337,7 @@
         
         .product-image i {
             font-size: 2.5rem;
-            color: var(--gray);
+            color: #6c757d;
         }
         
         .product-info {
@@ -359,14 +348,14 @@
             font-size: 1.2rem;
             font-weight: 600;
             margin-bottom: 8px;
-            color: var(--dark);
+            color: #212529;
         }
         
         .product-store {
             display: flex;
             align-items: center;
             gap: 8px;
-            color: var(--gray);
+            color: #6c757d;
             margin-bottom: 15px;
             font-size: 0.9rem;
         }
@@ -392,13 +381,13 @@
         .product-price {
             font-size: 1.5rem;
             font-weight: 700;
-            color: var(--primary);
+            color: #4361ee;
             margin-bottom: 15px;
         }
         
         .product-shipping {
             background: rgba(76, 201, 240, 0.1);
-            color: var(--success);
+            color: #4cc9f0;
             padding: 5px 10px;
             border-radius: 20px;
             display: inline-block;
@@ -414,7 +403,7 @@
         
         .btn-buy {
             padding: 10px 20px;
-            background: var(--primary);
+            background: #4361ee;
             color: white;
             border-radius: 8px;
             text-decoration: none;
@@ -426,13 +415,13 @@
         }
         
         .btn-buy:hover {
-            background: var(--secondary);
+            background: #3f37c9;
         }
         
         .placeholder {
             text-align: center;
             padding: 80px 20px;
-            color: var(--gray);
+            color: #6c757d;
         }
         
         .placeholder i {
@@ -444,7 +433,7 @@
         .placeholder h3 {
             font-size: 1.5rem;
             margin-bottom: 10px;
-            color: var(--dark);
+            color: #212529;
         }
         
         .placeholder p {
@@ -466,7 +455,7 @@
             width: 50px;
             height: 50px;
             border: 5px solid rgba(67, 97, 238, 0.2);
-            border-top: 5px solid var(--primary);
+            border-top: 5px solid #4361ee;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-bottom: 20px;
@@ -545,6 +534,7 @@
                         <p>Camera feed will appear here</p>
                     </div>
                     <div class="camera-overlay"></div>
+                    <canvas id="canvas" style="display: none;"></canvas>
                 </div>
                 
                 <div class="scanner-controls">
@@ -566,8 +556,8 @@
                 
                 <div class="detection-result" id="detection-result">
                     <h3><i class="fas fa-check-circle"></i> Object Identified</h3>
-                    <div class="object-name" id="object-name">Wireless Headphones</div>
-                    <div class="confidence">Confidence: 92%</div>
+                    <div class="object-name" id="object-name">Scanning...</div>
+                    <div class="confidence">Confidence: <span id="confidence">0%</span></div>
                     <p>We've found the best prices for this product from top retailers.</p>
                 </div>
             </div>
@@ -590,7 +580,7 @@
                         </select>
                     </div>
                     <div class="results-count">
-                        <span id="results-count">5</span> Results
+                        <span id="results-count">0</span> Results
                     </div>
                 </div>
                 
@@ -614,61 +604,54 @@
     <script>
         // DOM Elements
         const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
         const startCameraBtn = document.getElementById('start-camera');
         const captureBtn = document.getElementById('capture');
         const fileInput = document.getElementById('file-input');
         const uploadBtn = document.getElementById('upload-btn');
         const detectionResult = document.getElementById('detection-result');
         const objectName = document.getElementById('object-name');
+        const confidenceElement = document.getElementById('confidence');
         const resultsContainer = document.getElementById('results-container');
         const resultsPlaceholder = document.getElementById('results-placeholder');
         const loading = document.getElementById('loading');
         const sortSelect = document.getElementById('sort-select');
         const resultsCount = document.getElementById('results-count');
         const scanCount = document.getElementById('scan-count');
-
-        // Mock object database
-        const objectDatabase = {
-            headphones: {
-                name: "Wireless Headphones",
-                confidence: 92
-            },
-            watch: {
-                name: "Smart Watch",
-                confidence: 87
-            },
-            shoes: {
-                name: "Running Shoes",
-                confidence: 95
-            },
-            book: {
-                name: "Hardcover Book",
-                confidence: 82
-            },
-            plant: {
-                name: "Indoor Plant",
-                confidence: 78
-            },
-            mug: {
-                name: "Ceramic Coffee Mug",
-                confidence: 90
+        
+        // TensorFlow.js model
+        let model;
+        let stream;
+        
+        // Initialize TensorFlow.js model
+        async function initModel() {
+            try {
+                model = await mobilenet.load();
+                console.log('Model loaded successfully');
+            } catch (error) {
+                console.error('Error loading model:', error);
+                alert('Failed to load the object detection model. Please try again later.');
             }
-        };
-
-        // Mock product data
-        const mockProducts = [
-            {
-                id: 1,
-                name: "Premium Wireless Headphones",
-                store: "amazon",
-                price: 89.99,
-                rating: 4.8,
-                shipping: "Free delivery",
-                image: "headphones"
-            },
-            {
-                id: 2,
-                name: "Noise Cancelling Headphones",
-                store: "bestbuy",
-                price: 129.99,
-          
+        }
+        
+        // Initialize camera
+        async function initCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "environment" } 
+                });
+                video.srcObject = stream;
+                video.style.display = 'block';
+                document.getElementById('camera-placeholder').style.display = 'none';
+                captureBtn.disabled = false;
+                startCameraBtn.innerHTML = '<i class="fas fa-sync"></i> Restart Camera';
+            } catch (err) {
+                console.error("Error accessing camera:", err);
+                alert("Unable to access camera. Please check permissions and try again.");
+            }
+        }
+        
+        // Stop camera
+        function stopCamera() {
+            if (stream) {
+                const tracks = stream.getTracks();
