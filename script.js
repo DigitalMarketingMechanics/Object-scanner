@@ -1,163 +1,90 @@
-const video = document.getElementById("camera");
-const startBtn = document.getElementById("startCamera");
-const toggleFlashBtn = document.getElementById("toggleFlash");
-const scanBtn = document.getElementById("scanObject");
-const resultSection = document.getElementById("result");
+document.addEventListener('DOMContentLoaded', () => {
+    const imageUpload = document.getElementById('imageUpload');
+    const previewImage = document.getElementById('previewImage');
+    const previewText = document.querySelector('.preview-text');
+    const scanButton = document.getElementById('scanButton');
+    const objectName = document.getElementById('objectName');
+    const accuracy = document.getElementById('accuracy');
+    const productLinks = document.getElementById('productLinks');
 
-let stream = null;
-let track = null;
-let torchOn = false;
+    let selectedFile = null;
 
-// Start camera with back camera if available
-startBtn.onclick = async () => {
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { exact: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } }
+    imageUpload.addEventListener('change', (event) => {
+        selectedFile = event.target.files[0];
+        if (selectedFile) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                previewImage.style.display = 'block';
+                previewText.style.display = 'none';
+                scanButton.disabled = false;
+            };
+            reader.readAsDataURL(selectedFile);
+        } else {
+            previewImage.src = '#';
+            previewImage.style.display = 'none';
+            previewText.style.display = 'block';
+            scanButton.disabled = true;
+            objectName.textContent = 'Object: N/A';
+            accuracy.textContent = 'Accuracy: N/A';
+            productLinks.innerHTML = '<li>No products found yet.</li>';
+        }
     });
-  } catch (e) {
-    // fallback to any camera
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    } catch (err) {
-      alert("Camera access denied or not available.");
-      return;
-    }
-  }
 
-  video.srcObject = stream;
-  track = stream.getVideoTracks()[0];
+    scanButton.addEventListener('click', async () => {
+        if (!selectedFile) {
+            alert('Please select an image first.');
+            return;
+        }
 
-  scanBtn.disabled = false;
-  startBtn.disabled = true;
+        scanButton.disabled = true;
+        scanButton.textContent = 'Scanning...';
+        objectName.textContent = 'Object: Scanning...';
+        accuracy.textContent = 'Accuracy: ...';
+        productLinks.innerHTML = '<li>Searching for products...</li>';
 
-  // Check torch support
-  if ("ImageCapture" in window && track) {
-    try {
-      const imageCapture = new ImageCapture(track);
-      const capabilities = await imageCapture.getPhotoCapabilities();
-      if (capabilities.torch || (capabilities.fillLightMode && capabilities.fillLightMode.includes("torch"))) {
-        toggleFlashBtn.disabled = false;
-      } else {
-        toggleFlashBtn.disabled = true;
-      }
-    } catch {
-      toggleFlashBtn.disabled = true;
-    }
-  } else {
-    toggleFlashBtn.disabled = true;
-  }
-};
+        const formData = new FormData();
+        formData.append('image', selectedFile);
 
-// Toggle flashlight manually
-toggleFlashBtn.onclick = async () => {
-  if (!track) return;
+        try {
+            const response = await fetch('/scan', {
+                method: 'POST',
+                body: formData,
+            });
 
-  torchOn = !torchOn;
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Network response was not ok');
+            }
 
-  try {
-    await track.applyConstraints({
-      advanced: [{ torch: torchOn }]
+            const data = await response.json();
+            console.log(data); // Log the full response
+
+            objectName.textContent = `Object: ${data.objectName || 'Unknown'}`;
+            accuracy.textContent = `Accuracy: ${(data.accuracy * 100).toFixed(2)}%`;
+
+            productLinks.innerHTML = ''; // Clear previous links
+            if (data.products && data.products.length > 0) {
+                data.products.forEach(product => {
+                    const listItem = document.createElement('li');
+                    listItem.innerHTML = `
+                        <a href="${product.link}" target="_blank" rel="noopener noreferrer">${product.title}</a>
+                        <span class="price">${product.price}</span>
+                    `;
+                    productLinks.appendChild(listItem);
+                });
+            } else {
+                productLinks.innerHTML = '<li>No online store links found for this object.</li>';
+            }
+
+        } catch (error) {
+            console.error('Scan failed:', error);
+            objectName.textContent = 'Object: Error during scan';
+            accuracy.textContent = 'Accuracy: Please try again.';
+            productLinks.innerHTML = `<li>Error: ${error.message}. Please try again.</li>`;
+        } finally {
+            scanButton.disabled = false;
+            scanButton.textContent = 'Scan Object';
+        }
     });
-    toggleFlashBtn.textContent = torchOn ? "Flashlight ON" : "Toggle Flashlight";
-  } catch (err) {
-    alert("Flashlight not supported on this device or browser.");
-    toggleFlashBtn.disabled = true;
-  }
-};
-
-// Scan object — auto flashlight ON during scan, OFF after
-scanBtn.onclick = async () => {
-  if (!track) {
-    alert("Camera not started.");
-    return;
-  }
-
-  // Try turning ON flashlight automatically for scan
-  try {
-    await track.applyConstraints({ advanced: [{ torch: true }] });
-    torchOn = true;
-    toggleFlashBtn.textContent = "Flashlight ON";
-  } catch (_) {
-    // ignore if torch unsupported
-  }
-
-  const simulatedObjects = [
-    "Wireless Headphones",
-    "Smartphone",
-    "Backpack",
-    "Running Shoes",
-    "Wrist Watch"
-  ];
-
-  const detectedObject = simulatedObjects[Math.floor(Math.random() * simulatedObjects.length)];
-  showLoading(detectedObject);
-
-  // Simulate scanning delay
-  setTimeout(async () => {
-    displayResults(detectedObject);
-
-    // Turn OFF flashlight automatically when done scanning
-    try {
-      await track.applyConstraints({ advanced: [{ torch: false }] });
-      torchOn = false;
-      toggleFlashBtn.textContent = "Toggle Flashlight";
-    } catch (_) {
-      // ignore errors
-    }
-  }, 2000);
-};
-
-function showLoading(objectName) {
-  resultSection.innerHTML = `<p>Scanning object: <b>${objectName}</b>...</p>`;
-}
-
-function displayResults(objectName) {
-  const offers = [
-    {
-      store: "Amazon",
-      price: (100 + Math.random() * 900).toFixed(2),
-      url: `https://www.amazon.in/s?k=${encodeURIComponent(objectName)}`,
-      img: "https://images-na.ssl-images-amazon.com/images/I/61UdprqL7+L._AC_UL320_.jpg"
-    },
-    {
-      store: "Flipkart",
-      price: (90 + Math.random() * 850).toFixed(2),
-      url: `https://www.flipkart.com/search?q=${encodeURIComponent(objectName)}`,
-      img: "https://rukminim1.flixcart.com/image/200/200/jj5xhu80/speaker/c/m/x/-original-imafzqvwzyvzfmm9.jpeg"
-    },
-    {
-      store: "Reliance Digital",
-      price: (110 + Math.random() * 920).toFixed(2),
-      url: `https://www.reliancedigital.in/search?q=${encodeURIComponent(objectName)}`,
-      img: "https://rukminim1.flixcart.com/image/200/200/k92zhu80/mobile/i/g/x/-original-imafvdbmyhn3wpnd.jpeg"
-    },
-    {
-      store: "eBay",
-      price: (85 + Math.random() * 950).toFixed(2),
-      url: `https://www.ebay.in/sch/i.html?_nkw=${encodeURIComponent(objectName)}`,
-      img: "https://i.ebayimg.com/images/g/O9kAAOSwzQ5bOj9v/s-l1600.jpg"
-    },
-    {
-      store: "Croma",
-      price: (95 + Math.random() * 900).toFixed(2),
-      url: `https://www.croma.com/search/?text=${encodeURIComponent(objectName)}`,
-      img: "https://cdn.croma.com/image/upload/v1605300034/Croma%20Assets/Entertainment/Mobiles/Images/8936889277165.png"
-    }
-  ];
-
-  offers.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
-
-  resultSection.innerHTML = `
-    <h3>Detected Object: ${objectName}</h3>
-    <ul class="price-list">
-      ${offers.map(o => `
-        <li>
-          <img src="${o.img}" alt="${o.store} product" loading="lazy" />
-          <span>${o.store} – ₹${o.price}</span>
-          <a href="${o.url}" target="_blank" rel="noopener noreferrer" aria-label="Buy ${objectName} from ${o.store}">Buy Now</a>
-        </li>
-      `).join('')}
-    </ul>
-    <p>Prices are simulated for demo. Click links to view actual products on store sites.</p>
-  `;
-}
+});
